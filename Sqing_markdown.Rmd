@@ -1,0 +1,350 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+---
+  title: "SQING Tables and Figures"
+  output: word_document
+  
+  ---
+  
+  ```{r include = FALSE}
+  #devtools::install_github("crsh/papaja")
+  library(varhandle)
+  library(papaja)
+  library(XLConnect)
+  library(Hmisc)
+  library(knitr)
+  library(pander)
+   library(dplyr)
+  library(gridExtra)
+  library(grid)
+  require(pwr)
+  
+  #see https://www.r-bloggers.com/r-markdown-how-to-insert-page-breaks-in-a-ms-word-document/
+  # https://www.r-bloggers.com/tables-from-r-into-word/
+  # http://stackoverflow.com/questions/37671868/knitr-rmarkdown-docx-tables/37890832#37890832
+  # https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html -re miktex/mactex
+  #modified by Dorothy Bishop 4/2/17
+  
+  #username<-"pthompson"
+  username<-"dorothybishop"
+  
+  locate1<-paste("C:\\Users\\",username,"\\Dropbox\\SQING\\excel sheets\\SQING_with_templates_230417.xlsx",sep="")
+  
+  if (username=="dorothybishop"){
+    locate1<-paste("/Users/",username,"/Dropbox/Projects2016/SQING/excel sheets/SQING_with_templates_230417.xlsx",sep="")
+    }
+  
+  SQING.dat=loadWorkbook(locate1)
+  
+  #create a data.frame with max number of columns from sheets by 30 rows
+  
+  ncols<-70
+  nrows<-30
+  allstudy<-data.frame(matrix(rep(NA,nrows*ncols),nrow=nrows)) #make data frame to hold all studies
+  colnames(allstudy)=c('Study', 'Authors', 'Title', 'DOI', 'Sample', 'Sample_N', 'Subgroups', 
+                       'Genes', 'Polymorphisms', 'Phenotypes', 'Analysis', 'SelResult', 'Conclusion', 
+                       'SelRes_Variants_N', 'SelRes_ES', 'ES_source', 'Detect_ES_80', 'Power_ES_10', 
+                       'Replication', 'Multcorr', 'Prevresults', 'Comment', 'Authorquery', 'Addinfo', 
+                       'Geneticmodel', 'Haplotypes', 'N_Gmodels', 'CorrForN_Gmodels', 
+                       'N_Polym', 'Correl_Polym', 'CorrForN_Polym','Genetic_analysis_notes', 'N_Pheno', 
+                       'Correl_Pheno', 'CorrForN_Pheno', 'Neuro_Text', 'Neuro_CorrForN_approach','Imaging_Correction', 
+                       'N_Neuropheno', 'CorrForN_Neuro', 'Mention_Multtest', 'Mention_ES', 
+                       'Repcode', 'SelRes_N', 'Poldrack_80_Power', 'Au_contacted', 'Au_email', 'Au_response', 
+                       'Detect_ES_80d', 'Neuro_Method', 'Quasi_ES', 'X7', 'X8', 'X9', 'X10','X11','X12','X13','X14','X15',
+                       'X16','Journal','X19','X20')
+  
+  # add data from each study, reading from the specific sheet for that study
+  for (i in 1:30){
+    mysheet<-paste('overview_',i,sep='')
+  
+  temp=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=2,endCol=2,header=F))
+  maxrow<-nrow(temp)
+  
+  if(maxrow>60){maxrow=60}
+  allstudy[i,1:maxrow]=t(temp)
+  #Add total N used to get selected result - in cells H4:H6
+  temp2=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=8,endCol=8,startRow=4,endRow=6,header=F))
+  allstudy[i,44]<-sum(temp2)
+  }
+
+ 
+# ------------------------------------------------------------------------------------------
+# There was unexplained problem reading B15 (effect size) from some sheets - throws an error
+# I think these were sheets where I had pasted figures _ i have moved them over and now seems OK
+# ------------------------------------------------------------------------------------------
+# Excel file did not have raw numbers for Discovery and Replication, so need to do these manually
+# The original cell for N had text and this is now moved to column 62,
+# The original subgroups column is also moved to column 63
+# This means we can use columns 6 and 7 for numerical values for Discovery and Replication samples
+allstudy$X19<-allstudy$Sample_N
+colnames(allstudy)[63]<-'Sample_N_text'
+allstudy$X20<-allstudy$Subgroups
+colnames(allstudy)[64]<-'N_Subgroups'
+temp<-readWorksheet(SQING.dat,sheet='Ns',startCol=3,endCol=4,header=F)
+allstudy[,6]<-temp[,1]
+allstudy[,7]<-temp[,2]
+colnames(allstudy)[6:7]<-c('DiscoveryN','ReplicationN')
+# ------------------------------------------------------------------------------------------
+# Add journal names
+temp<-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=3,endCol=3,header=T)
+allstudy$Journal[1:30]<-t(temp)
+allstudy$Journal<-as.factor(allstudy$Journal)
+# ------------------------------------------------------------------------------------------
+# Add author response and email
+temp<-readWorksheet(SQING.dat,sheet='authorcontact',startCol=4,endCol=5,header=T)
+temp=temp[1:30,]
+allstudy$Au_response<-temp[,1]
+allstudy$Au_email<-temp[,2]
+allstudy$Au_response<-as.factor(allstudy$Au_response)
+levels(allstudy$Au_response)<-c('No reply','Acknowledged only','Responded','Other')
+# ------------------------------------------------------------------------------------------
+# Add replication code
+temp<-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=9,endCol=9,header=T)
+temp=temp[1:30,]
+allstudy$Repcode<-as.factor(temp)
+levels(allstudy$Repcode)<-c('No','Yes','Other','Prior')
+
+# ------------------------------------------------------------------------------------------
+
+# Just for tidiness, ensure all text columns have initial capitalisation
+textcols=c(5,11,19,20,22,28,32,36,42)
+for (k in 1:length(textcols)){
+allstudy[,textcols[k]]<-capitalize(allstudy[,textcols[k]])
+}
+# ------------------------------------------------------------------------------------------
+
+# Ensure all Quasi_ES values are n/a (-1)  or No (0) or Yes (1)
+
+allstudy$Quasi_ES<--1
+temp=which(allstudy[,45]==1)
+allstudy$Quasi_ES[temp]<-1
+temp=which(allstudy[,45]==0)
+allstudy$Quasi_ES[temp]<-0
+allstudy$Quasi_ES<-as.factor(allstudy$Quasi_ES)
+#we'll add more relevant factor names once we've used this for plot
+
+allstudy$Imaging_Correction<-as.factor(allstudy$Imaging_Correction)
+levels(allstudy$Imaging_Correction)<-c('Whole area a priori ROI','Peak within a priori ROI', 'ROI from data','n/a')
+# Note that some columns are not now used because we did not have time to collect sufficient information. 
+# These include:
+# Prevresults, Authorquery, Addinfo (this is blank)
+# ------------------------------------------------------------------------------------------
+allstudy$Correl_Polym=as.factor(allstudy$Correl_Polym)
+allstudy$Correl_Pheno<-as.factor(allstudy$Correl_Pheno)
+levels(allstudy$Correl_Polym)<-levels(allstudy$Correl_Pheno)<-c('NA','Yes','Unclear','No')
+
+
+allstudy$CorrForN_Polym=as.factor(allstudy$CorrForN_Polym)
+
+levels(allstudy$CorrForN_Polym)<-c('No','Bonferroni','Data Reduction','Permutation','NA')
+
+mytemp=which(allstudy$Genetic_analysis_notes==0) #tidying up text; replace 0 with - for this column
+allstudy$Genetic_analysis_notes[mytemp]<-'-'
+temp=which(allstudy$CorrForN_Pheno=='-')
+allstudy$CorrForN_Pheno[temp]=5
+allstudy$CorrForN_Pheno<-as.factor(allstudy$CorrForN_Pheno)
+levels(allstudy$CorrForN_Pheno)<-c('None','Bonferroni', 'Permutation','Not needed')
+# ------------------------------------------------------------------------------------------
+# Recompute the power values for the SelRes_N
+# (These have also been updated now in xls so should be the same )
+for (i in 1:30){
+  thisnum=as.integer(allstudy$SelRes_N[i])
+  thispow=pwr.r.test(n=thisnum,sig.level =.05,power=.8,alternative="two.sided")
+  result2= pwr.r.test(n =thisnum , sig.level =.05,r=.1,alternative="two.sided")
+  thisr=thispow$r
+  thisp=result2$power
+  allstudy$Power_ES_10[i]=round(thisp,3)
+  allstudy$Detect_ES_80[i]=round(thisr,3)
+  myd=4/sqrt(thisnum)
+  #myr=myd/sqrt(myd^2+4) Poldrack d to r
+  allstudy$Poldrack_80_Power[i]=myd
+  allstudy$Detect_ES_80d=myd
+}
+
+
+#Additional bit to explore neuro studies
+allstudy$ID<-seq.int(nrow(allstudy))
+mybit=data.frame(cbind(allstudy$ID, allstudy$Neuro_Text,allstudy$Neuro_CorrForN_approach,
+                       allstudy$N_Neuropheno,allstudy$CorrForN_Neuro,allstudy$Repcode))
+colnames(mybit)=c('ID','Neuro_Text,','Neuro_CorrForN_approach','N_Neuropheno','CorrForN_Neuro','Repcode')
+nn=which(mybit$N_Neuropheno==0)
+mybit=mybit[-nn,]
+  
+allN=seq(1:30)
+neuroindex=allN [! allN %in% nn] #numbers of studies with neuro
+allstudy$Neuro_Method=rep('-',30)
+allstudy$Neuro_Method[neuroindex]=c('fMRI','fMRI','fMRI','VBM','Neuropathology','fMRI','Structural MRI','fMRI','fMRI','PET','Structural MRI','fMRI','fMRI','fMRI','Structural MRI+fMRI','fMRI')
+
+#Check: compare Poldrack ES 80 with computed version from R
+# plot(allstudy$Detect_ES_80,(4/sqrt(as.numeric(allstudy$SelRes_N))))
+
+#Create a table with the Ns for multiple contrasts
+myvars=c('Study','N_Subgroups','N_Polym','N_Gmodels','N_Pheno','N_Neuropheno','X16','Multcorr','Quasi_ES')
+myNtable=allstudy[myvars]
+mycombs<-as.integer(allstudy$N_Gmodels)*as.integer(allstudy$N_Polym)
+temp<-as.integer(allstudy$N_Pheno)
+temp[temp==0]<-1
+mycombs<-mycombs*temp
+temp<-as.integer(allstudy$N_Neuropheno)
+temp[temp==0]<-1
+mycombs<-mycombs*temp
+temp<-as.integer(allstudy$N_Subgroups)
+temp[temp==0]<-1
+mycombs<-mycombs*temp
+colnames(allstudy)[61]<-'Combinations'
+colnames(myNtable)[7]<-'Combinations'
+allstudy$Combinations<-mycombs
+myNtable$Combinations<-mycombs
+#Now mark those where models, pheno or genos are correlated 
+
+
+temploc<-which(myNtable$N_Gmodels>1)
+temp<-myNtable$N_Gmodels[temploc]
+temp=paste(temp,"-",sep='')
+myNtable$N_Gmodels[temploc] <- temp  
+
+temploc<-which(allstudy$Correl_Polym=='Yes')
+temp<-myNtable$N_Polym[temploc]
+temp=paste(temp,"-",sep='')
+myNtable$N_Polym[temploc] <- temp  
+
+#add a minus to those where Phenotypes correlated
+temploc<-which(allstudy$Correl_Pheno=='Yes')
+temp<-myNtable$N_Pheno[temploc]
+temp=paste(temp,"-",sep='')
+myNtable$N_Pheno[temploc] <- temp
+
+#add a tilde to those where Phenotypes probably correlated
+temploc<-which(allstudy$Correl_Pheno=='Unclear')
+temp<-myNtable$N_Pheno[temploc]
+temp=paste(temp,"~",sep='')
+myNtable$N_Pheno[temploc] <- temp 
+
+
+#recycle Quasi-effect code to mark those with neuroimaging
+temploc<-which(myNtable$N_Neuropheno > 0)
+myNtable$Quasi_ES[temploc]<-9
+
+myNtable$FullCorrect<-c(1,1,0,0,1,0,1,0,1,1,0,2,0,1,2,2,2,2,0,0,2,1,0,0,2,0,0,1,2,2)
+
+#sort so all neuro together
+#colnames(myNtable)[1]<-'Journal'
+#myNtable$Journal<-allstudy$Journal
+newNtable<-myNtable #Previously had option of sorting to group studies, but omitted here
+
+#newNtable <- myNtable[order(as.integer(myNtable$Combinations)),] 
+#newNtable <- newNtable[order(as.integer(newNtable$Quasi_ES)),] 
+
+lastcol=length(colnames(newNtable))
+newNtable<-newNtable[,-lastcol] #remove Quasi_ES column
+
+colnames(newNtable)<-c('Journal','Subgroups','Models','Polymorphisms','Phenotypes','Imaging regions','All Combinations','Correction method')
+write.table(newNtable, "mynewtable.txt", sep="\t") 
+
+mynubit<-allstudy[,c(6,7,15,8)]
+write.table(mynubit,'mynubit.txt',sep='\t')
+```
+
+
+#Table 1
+Multiple comparisons
+
+```{r, echo=FALSE}
+
+
+kable(newNtable,caption='Corrections for multiple comparisons in relation to N subgroups, genetic models, polymorphisms, and imaging regions. All combinations is the product of all of these. – denotes correlated variables; ~ denotes probably correlated
+')
+```
+***
+#Figure 2
+##Obtained effect size in relation to sample size (on log scale)
+##Symbols denote replication: triangle = Prior, square = Yes, circle = No, diamond = Other.
+
+```{r, echo=FALSE} 
+#NB black are 'quasi' effect sizes: need a legend to show this
+# Also would be good to show correlation coeff for log sample size vs ES
+
+plot(allstudy$SelRes_N,allstudy$SelRes_ES, main="Log sample size by Effect size (r)",log='x',
+    xlab="Sample size ", ylab="Effect size (r)", pch=(20+as.numeric(allstudy$Repcode)),
+    bg=(1+151*allstudy$Quasi_ES))  
+fullcorrel<-cor(log(as.numeric(allstudy$SelRes_N)),as.numeric(allstudy$SelRes_ES))
+mysubset<-allstudy[allstudy$Quasi_ES==-1,]
+subsetcorrel<-cor(log(as.numeric(mysubset$SelRes_N)),as.numeric(mysubset$SelRes_ES))
+
+levels(allstudy$Quasi_ES)=c('n/a','No','Yes') #for Appendix
+```
+
+***
+#Table 2 
+
+
+```{r, echo=FALSE}
+
+  temp=allstudy$N_Polym
+temp2=which(temp>1)
+temp[temp2]='Uncorrelated'
+temp3=which(allstudy$Correl_Polym=="Yes")
+temp[temp3]='Correlated'
+tab1<-table(allstudy$CorrForN_Polym,temp)
+nstudy<-sum(tab1[1:4,2:3])
+kable(tab1[1:4,2:3],caption=paste('Correction for multiple testing in relation to genetic variants considered: ',nstudy,' studies with 2 or more correlated or uncorrelated polymorphisms',sep=''))
+```
+
+***
+
+#Table 3
+
+
+```{r, echo=FALSE}
+
+
+tab3<-table(allstudy$CorrForN_Pheno,allstudy$Correl_Pheno)
+kable(tab3,caption='Correction for multiple testing in relation to behavioural phenotypes')
+```
+
+***
+
+#Table 4
+
+
+```{r, echo=FALSE}
+tab4<-table(allstudy$Journal,allstudy$Repcode)
+kable(tab4,caption='Number of studies including replication sample, by journal')
+```
+
+
+***
+
+#Appendices
+
+```{r, echo=FALSE,results = 'asis'}
+mytempx=matrix(rep(NA,2*71),ncol=2)
+mytempx[1:71,1]=colnames(allstudy)# for checking col number of relevant columns
+neworder<-c(3,4,62,13,5,6,7,8,9,29,30,10,33,34,39,11,25,27,50,12,16,44,22,15,51,38,41,28,31,35,37,17,18,48) #Authors omitted
+
+  mytempl<-matrix(rep(NA,2*34),ncol=2)
+  
+  mytempl[1:34,1]<-c('Title', 'DOI', 'Journal','Conclusion','Sample', 'Discovery Sample N','Replication Sample N',
+                     'Genes', 'Polymorphisms', 'N Polymorphisms','Correlated Polymorphisms','Phenotypes', 'N Behav. Phenotypes','Correlated Behav. Phenotypes','N Neuro Phenotypes','Analysis Method', 'Genetic models','N genetic models', 'Neuro methods','Selected Result', 'Selected Result Source','Ns for Selected Result','Comment on Selected Result','Selected Result Effect Size','Quasi Effect Size?','Imaging ROI approach','Mention of multiple comparisons','Correction for N genetic models','Correction for N polymorphisms','Correction for N behavioural phenotypes','Correction for N neuro phenotypes','Effect Size (r) Detectable with 80% Power','Power to Detect Effect Size (r) of .1','Author response to contact')
+for (i in 1:30){
+  thisstudy=paste('Study',i)
+  #print(thisstudy)
+  colnames(mytempl)=c('Information',thisstudy)
+  mytempl[,2]<-t(allstudy[i,neworder])
+print(kable(mytempl,caption='')) #Have to explicitly print if in a loop
+ 
+ # print(grid.table(mytempl))
+  #need to look at formatting with ftp://cran.r-project.org/pub/R/web/packages/gridExtra/vignettes/tableGrob.html
+
+}
+
+#anova according to replication status  
+  require(ggplot2)
+ 
+  allstudy$SelRes_ES=as.numeric(allstudy$SelRes_ES)
+ ggplot(allstudy,aes(x=allstudy$Repcode,y=allstudy$SelRes_ES))+geom_boxplot(fill='grey80',colour='blue')+scale_x_discrete()+ xlab("Replication") +
+  ylab("Effect size")
+mymod1 = lm(SelRes_ES ~ Repcode, data =allstudy)
