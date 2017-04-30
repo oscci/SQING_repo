@@ -10,6 +10,12 @@ output:
   ---
   
   ```{r include = FALSE}
+    #modified by DVM Bishop 4/2/17, 30/4/17
+  #-------------------------------------------------------------------------------
+  # Specify packages
+  #-------------------------------------------------------------------------------
+  
+  # Some of these packages may be unnecessary: I tried various options to allow word formatting
   #devtools::install_github("crsh/papaja")
   library(varhandle)
   library(papaja)
@@ -26,20 +32,23 @@ output:
   # https://www.r-bloggers.com/tables-from-r-into-word/
   # http://stackoverflow.com/questions/37671868/knitr-rmarkdown-docx-tables/37890832#37890832
   # https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html -re miktex/mactex
-  #modified by Dorothy Bishop 4/2/17
+  #-------------------------------------------------------------------------------
   
-  #username<-"pthompson"
-  username<-"dorothybishop"
+
+  setwd("~/SQING_repo")
+  myfilename<-"SQING_with_templates.xlsx" 
+# 30th April 2017: moved this file to SQING_repo
   
-  locate1<-paste("C:\\Users\\",username,"\\Dropbox\\SQING\\excel sheets\\SQING_with_templates_230417.xlsx",sep="")
   
-  if (username=="dorothybishop"){
-    locate1<-paste("/Users/",username,"/Dropbox/Projects2016/SQING/excel sheets/SQING_with_templates_230417.xlsx",sep="")
-    }
+  SQING.dat=loadWorkbook(myfilename)
+ #-------------------------------------------------------------------------------
+ 
+# The organisation of information in the xls file is not optimal so we are going to 
+# create a new data frame with column headings that make sense and then copy over
+# the information we need
   
-  SQING.dat=loadWorkbook(locate1)
-  
-  #create a data.frame with max number of columns from sheets by 30 rows
+  #create a data.frame with 70 columns by 30 rows
+  # includes some spare columns in case we need new variables
   
   ncols<-70
   nrows<-30
@@ -52,103 +61,103 @@ output:
                        'N_Polym', 'Correl_Polym', 'CorrForN_Polym','Genetic_analysis_notes', 'N_Pheno', 
                        'Correl_Pheno', 'CorrForN_Pheno', 'Neuro_Text', 'Neuro_CorrForN_approach','Imaging_Correction', 
                        'N_Neuropheno', 'CorrForN_Neuro', 'Mention_Multtest', 'Mention_ES', 
-                       'Repcode', 'SelRes_N', 'Poldrack_80_Power', 'Au_contacted', 'Au_email', 'Au_response', 
-                       'Detect_ES_80d', 'Neuro_Method', 'Quasi_ES', 'X7', 'X8', 'X9', 'X10','X11','X12','X13','X14','X15',
+                       'Repcode', 'SelRes_N', 'Quasi_ES', 'Au_contacted', 'Au_email', 'Au_response', 
+                       'Detect_ES_80d', 'Neuro_Method', 'X6', 'X7', 'X8', 'X9', 'X10','X11','X12','X13','X14','X15',
                        'X16','Journal','X19','X20')
-  
-  # add data from each study, reading from the specific sheet for that study
+
+# Note that some columns are not now used because we did not have time to collect sufficient information. 
+# These include:
+# Prevresults, Authorquery, Addinfo (this is blank)
+# ------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+   # Add data from each study, reading from the specific sheet for that study
+#-------------------------------------------------------------------------------
+ 
   for (i in 1:30){
     mysheet<-paste('overview_',i,sep='')
   
-  temp=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=2,endCol=2,header=F))
+  temp=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=2,endCol=2,header=F,useCachedValues=TRUE)) #most of what we need is in column B, so read that first
   maxrow<-nrow(temp)
-  
-  if(maxrow>60){maxrow=60}
+  if(maxrow>60){maxrow=60} #some sheets have extra information:commentary from authors etc
   allstudy[i,1:maxrow]=t(temp)
+  #move cols for text account of sample, and subgroups to cols 63 and 64
+  #(historical reasons for this: these cols will be used for Ns for discovery/replication)
+  allstudy[i,63]<-allstudy[i,6]
+  allstudy[i,64]<-allstudy[i,7]
+
   #Add total N used to get selected result - in cells H4:H6
   temp2=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=8,endCol=8,startRow=4,endRow=6,header=F))
   allstudy[i,44]<-sum(temp2)
-  }
+  
+  temp3=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=4,endCol=5,startRow=22,endRow=22,header=F)) #Ns for discovery and replication in cells D22:E22
+allstudy[i,6]<-temp3[,1]
+allstudy[i,7]<-temp3[,2]
 
- 
-# ------------------------------------------------------------------------------------------
-# There was unexplained problem reading B15 (effect size) from some sheets - throws an error
-# I think these were sheets where I had pasted figures _ i have moved them over and now seems OK
-# ------------------------------------------------------------------------------------------
-# Excel file did not have raw numbers for Discovery and Replication, so need to do these manually
-# The original cell for N had text and this is now moved to column 62,
-# The original subgroups column is also moved to column 63
-# This means we can use columns 6 and 7 for numerical values for Discovery and Replication samples
-allstudy$X19<-allstudy$Sample_N
-colnames(allstudy)[63]<-'Sample_N_text'
-allstudy$X20<-allstudy$Subgroups
-colnames(allstudy)[64]<-'N_Subgroups'
-temp<-readWorksheet(SQING.dat,sheet='Ns',startCol=3,endCol=4,header=F)
-allstudy[,6]<-temp[,1]
-allstudy[,7]<-temp[,2]
+#categorical code for Neuro method is in cell C36
+ temp4=data.frame(readWorksheet(SQING.dat,sheet=mysheet,startCol=3,endCol=3,startRow=36,endRow=36,header=F))
+ allstudy[i,50]<-temp4[,1]
+
+  }
 colnames(allstudy)[6:7]<-c('DiscoveryN','ReplicationN')
-# ------------------------------------------------------------------------------------------
-# Add journal names
-temp<-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=3,endCol=3,header=T)
+colnames(allstudy)[63]<-'Sample_N_text'
+colnames(allstudy)[64]<-'N_Subgroups'
+# -----------------------------------------------------------------------------------------
+# There was unexplained problem reading B15 (effect size) from some sheets 
+# Affected sheets were 12, 17, 18, 20, 22, 30
+# This has now been fixed by using the useCachedValues=TRUE setting with readWorksheet
+
+# -----------------------------------------------------------------------------------------# Use depersonalised 3-category code for author response (from col D in 'authorcontact' worksheet)
+
+temp5=data.frame(readWorksheet(SQING.dat,sheet='authorcontact',startCol=4,endCol=4,startRow=2,endRow=31,header=F))
+ allstudy[,48]<-temp5[,1]
+ table(allstudy$Au_response) #2 indicates replied; 1 indicates acknowledged,0 no response
+ # These numbers to be entered into manuscript
+ # ----------------------------------------------------------------------------------------
+-
+# Add journal names: these are in another data sheet
+
+temp <-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=3,endCol=3,header=T)
 allstudy$Journal[1:30]<-t(temp)
 allstudy$Journal<-as.factor(allstudy$Journal)
-# ------------------------------------------------------------------------------------------
-# Add author response and email
-temp<-readWorksheet(SQING.dat,sheet='authorcontact',startCol=4,endCol=5,header=T)
-temp=temp[1:30,]
-allstudy$Au_response<-temp[,1]
-allstudy$Au_email<-temp[,2]
-allstudy$Au_response<-as.factor(allstudy$Au_response)
-levels(allstudy$Au_response)<-c('No reply','Acknowledged only','Responded','Other')
-# ------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------
+
 # Add replication code
-temp<-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=9,endCol=9,header=T)
+
+temp <- readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=9,endCol=9,header=T)
 temp=temp[1:30,]
 allstudy$Repcode<-as.factor(temp)
 levels(allstudy$Repcode)<-c('No','Yes','Other','Prior')
 
-# ------------------------------------------------------------------------------------------
-
+# -----------------------------------------------------------------------------------------
 # Just for tidiness, ensure all text columns have initial capitalisation
 textcols=c(5,11,19,20,22,28,32,36,42)
 for (k in 1:length(textcols)){
 allstudy[,textcols[k]]<-capitalize(allstudy[,textcols[k]])
 }
-# ------------------------------------------------------------------------------------------
+mytemp=which(allstudy$Genetic_analysis_notes==0) #tidying up text; replace 0 with - for this column
+allstudy$Genetic_analysis_notes[mytemp]<-'-'
+# -----------------------------------------------------------------------------------------
 
-# Ensure all Quasi_ES values are n/a (-1)  or No (0) or Yes (1)
+# Convert relevant columns into factors to allow tables
 
-allstudy$Quasi_ES<--1
-temp=which(allstudy[,45]==1)
-allstudy$Quasi_ES[temp]<-1
-temp=which(allstudy[,45]==0)
-allstudy$Quasi_ES[temp]<-0
 allstudy$Quasi_ES<-as.factor(allstudy$Quasi_ES)
 #we'll add more relevant factor names once we've used this for plot
 
 allstudy$Imaging_Correction<-as.factor(allstudy$Imaging_Correction)
 levels(allstudy$Imaging_Correction)<-c('Whole area a priori ROI','Peak within a priori ROI', 'ROI from data','n/a')
-# Note that some columns are not now used because we did not have time to collect sufficient information. 
-# These include:
-# Prevresults, Authorquery, Addinfo (this is blank)
-# ------------------------------------------------------------------------------------------
-allstudy$Correl_Polym=as.factor(allstudy$Correl_Polym)
-allstudy$Correl_Pheno<-as.factor(allstudy$Correl_Pheno)
+
+allstudy$Correl_Polym=as.factor(allstudy$Correl_Polym) #whether polymorphisms correlated
+allstudy$Correl_Pheno<-as.factor(allstudy$Correl_Pheno) #whether polymorphisms correlated
 levels(allstudy$Correl_Polym)<-levels(allstudy$Correl_Pheno)<-c('NA','Yes','Unclear','No')
 
-
 allstudy$CorrForN_Polym=as.factor(allstudy$CorrForN_Polym)
-
 levels(allstudy$CorrForN_Polym)<-c('No','Bonferroni','Data Reduction','Permutation','NA')
 
-mytemp=which(allstudy$Genetic_analysis_notes==0) #tidying up text; replace 0 with - for this column
-allstudy$Genetic_analysis_notes[mytemp]<-'-'
-temp=which(allstudy$CorrForN_Pheno=='-')
-allstudy$CorrForN_Pheno[temp]=5
 allstudy$CorrForN_Pheno<-as.factor(allstudy$CorrForN_Pheno)
 levels(allstudy$CorrForN_Pheno)<-c('None','Bonferroni', 'Permutation','Not needed')
-# ------------------------------------------------------------------------------------------
-# Recompute the power values for the SelRes_N
+# -----------------------------------------------------------------------------------------
+# Recompute the power values corresponding to the SelRes_N
+# -----------------------------------------------------------------------------------------
 # (These have also been updated now in xls so should be the same )
 for (i in 1:30){
   thisnum=as.integer(allstudy$SelRes_N[i])
@@ -158,30 +167,12 @@ for (i in 1:30){
   thisp=result2$power
   allstudy$Power_ES_10[i]=round(thisp,3)
   allstudy$Detect_ES_80[i]=round(thisr,3)
-  myd=4/sqrt(thisnum)
-  #myr=myd/sqrt(myd^2+4) Poldrack d to r
-  allstudy$Poldrack_80_Power[i]=myd
-  allstudy$Detect_ES_80d=myd
 }
 
 
-#Additional bit to explore neuro studies
-allstudy$ID<-seq.int(nrow(allstudy))
-mybit=data.frame(cbind(allstudy$ID, allstudy$Neuro_Text,allstudy$Neuro_CorrForN_approach,
-                       allstudy$N_Neuropheno,allstudy$CorrForN_Neuro,allstudy$Repcode))
-colnames(mybit)=c('ID','Neuro_Text,','Neuro_CorrForN_approach','N_Neuropheno','CorrForN_Neuro','Repcode')
-nn=which(mybit$N_Neuropheno==0)
-mybit=mybit[-nn,]
-  
-allN=seq(1:30)
-neuroindex=allN [! allN %in% nn] #numbers of studies with neuro
-allstudy$Neuro_Method=rep('-',30)
-allstudy$Neuro_Method[neuroindex]=c('fMRI','fMRI','fMRI','VBM','Neuropathology','fMRI','Structural MRI','fMRI','fMRI','PET','Structural MRI','fMRI','fMRI','fMRI','Structural MRI+fMRI','fMRI')
-
-#Check: compare Poldrack ES 80 with computed version from R
-# plot(allstudy$Detect_ES_80,(4/sqrt(as.numeric(allstudy$SelRes_N))))
-
-#Create a table with the Ns for multiple contrasts
+# -----------------------------------------------------------------------------------------
+#Create a table with the Ns for multiple testing (Table 1 in paper)
+# -----------------------------------------------------------------------------------------
 myvars=c('Study','N_Subgroups','N_Polym','N_Gmodels','N_Pheno','N_Neuropheno','X16','Multcorr','Quasi_ES')
 myNtable=allstudy[myvars]
 mycombs<-as.integer(allstudy$N_Gmodels)*as.integer(allstudy$N_Polym)
@@ -199,7 +190,6 @@ colnames(myNtable)[7]<-'Combinations'
 allstudy$Combinations<-mycombs
 myNtable$Combinations<-mycombs
 #Now mark those where models, pheno or genos are correlated 
-
 
 temploc<-which(myNtable$N_Gmodels>1)
 temp<-myNtable$N_Gmodels[temploc]
@@ -223,12 +213,14 @@ temp<-myNtable$N_Pheno[temploc]
 temp=paste(temp,"~",sep='')
 myNtable$N_Pheno[temploc] <- temp 
 
+# These codes allocated on basis of data in myNTable
+myNtable$FullCorrect<-c(1,1,0,0,1,0,1,0,1,1,0,0,0,1,2,2,2,2,0,0,2,1,0,0,2,0,0,1,2,2)
+#-----------------------------------------------------------------------------
 
 #recycle Quasi-effect code to mark those with neuroimaging
 temploc<-which(myNtable$N_Neuropheno > 0)
 myNtable$Quasi_ES[temploc]<-9
 
-myNtable$FullCorrect<-c(1,1,0,0,1,0,1,0,1,1,0,2,0,1,2,2,2,2,0,0,2,1,0,0,2,0,0,1,2,2)
 
 #sort so all neuro together
 #colnames(myNtable)[1]<-'Journal'
