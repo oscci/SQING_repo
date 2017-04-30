@@ -13,7 +13,7 @@ output:
     #modified by DVM Bishop 4/2/17, 30/4/17
     
  
-# 30th April 2017: moved this file to SQING_repo
+# 30th April 2017: moved the markdown file to SQING_repo
   #-------------------------------------------------------------------------------
   # Specify packages
   #-------------------------------------------------------------------------------
@@ -39,9 +39,8 @@ output:
   # https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html -re miktex/mactex
   #-------------------------------------------------------------------------------
   
- #setwd("~/SQING_repo")
-  myfilename<-"SQING_with_templates.xlsx" 
-  
+ xlsdir<-"~/Dropbox/Projects2016/SQING/excel sheets/"
+  myfilename<-paste(xlsdir,"SQING_with_templates.xlsx",sep='') 
   
   SQING.dat=loadWorkbook(myfilename)
  #-------------------------------------------------------------------------------
