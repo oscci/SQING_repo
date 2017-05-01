@@ -336,4 +336,8 @@ print(kable(mytempl,caption='')) #Have to explicitly print if in a loop
   #need to look at formatting with ftp://cran.r-project.org/pub/R/web/packages/gridExtra/vignettes/tableGrob.html
 
 }
-
+#Make table of genes and phenotypes (not currently used)
+setwd("~/Dropbox/Projects2016/SQING/SQING R scripts")
+shortbit<-allstudy[,c(1,8,10)]
+newdata <- shortbit[order(shortbit$Genes),]
+write.table(newdata, "genedata.txt", sep="\t") 
