@@ -13,7 +13,7 @@ myM<-0 # Mean score for simulated variables
 myVar<-1 #Variance for simulated variables
 myN<-300 #set sample size per group (You can vary this to see the effect)
 i <-0
-nSims<-100 #arbitary N simulations
+nSims<-100 #arbitary N simulations (set to 100 for testing, 10000 for final run)
 mycutoffs<-c(-2.32,-.43,0,.43,.67)#range of cutoffs to try
 mycentiles<-c(99,66,50,33,25)
 ncutoff<-length(mycutoffs)
@@ -85,43 +85,60 @@ summarytable$log.pr<-log10(summarytable[,4])
  myrange=1:length(mycutoffs)
 
 #-------------------------------------------------------------
- # aggregate data to get means by cutoff
-
+ # aggregate data to get means by cutoff 
  aggdata<-aggregate(summarytable[,6:13], by=list(summarytable$cutoff),
-                   FUN=mean, na.rm=TRUE)
-colnames(aggdata)[1]<- 'cutoff'
-aggdata$centiles<-mycentiles
-myhead<-'Log p-values for \n regression of phenotype on genotype'
-mysub<-paste('Population r =',myCorr,': Sample size =',myN)
-plot(aggdata$centiles,aggdata$log.pchi,ylim=c(-2.5,0),xlim=rev(range(mycentiles)),main=myhead,sub=mysub,
+                    FUN=mean, na.rm=TRUE)
+ colnames(aggdata)[1]<- 'cutoff'
+ aggdata$centiles<-mycentiles
+
+ #plot p-values for chi square/regression
+ par(mar=c(1,1,0,0)) #set margins
+ #set up file to write figure to (won't see it on screen)
+ myfolder<-"~/Dropbox/Projects2016/SQING/draft SQING article/Figures/"
+ myfilename<-'Figure6.png'
+ png(paste(myfolder,myfilename,sep=''),
+     width = 800, height = 620, units = "px", pointsize = 28)
+ 
+#myhead<-'Log p-values for \n regression of phenotype on genotype'
+ #don't include title for figure for article
+#mysub<-paste('Population r =',myCorr,': Sample size =',myN)
+ #this is subheading that would appear below x-axis
+plot(aggdata$centiles,aggdata$log.pchi,ylim=c(-2.5,0),xlim=rev(range(mycentiles)),
      xlab='% Ability-range included',ylab='log10 p-value',xaxt='n')
 axis(side=1,at=mycentiles)
 lines(aggdata$centiles,aggdata$log.pchi)
-lines(aggdata$centiles,aggdata$log.pr,col='blue',type='o',pch=18)
+lines(aggdata$centiles,aggdata$log.pr,col='blue',type='o',pch=16)
 abline(h=log10(.05),col='red',lty=2)
 text(53,-.3,'(a) Chi-square test') 
-text(60,-1.7,'(b) Regression') 
+text(60,-2,'(b) Regression') 
 text(90,-1.25,'p = .05')
-
 colnames(aggdata)[5:7]<-c('aa','aA','AA')
+dev.off() #turn off external plotting
 
-
+#-----------------------------------------------------------------------
 #Illustrate how means and N change with cutoffs at 3 levels
+#-----------------------------------------------------------------------
+myfilename<-'Figure5.png'
+png(paste(myfolder,myfilename,sep=''),
+    width = 960, height = 420, units = "px", pointsize = 28)
+
 par(mfrow=c(1,3)) #set up plot frame with 3 plots in 1 row
 
-barplot(as.matrix(aggdata[1,5:7]),main='No cutoff',ylim=c(-.2,1.25),ylab='zscore')
-text(.6,.04,paste('N = ',as.integer(aggdata[1,2])),cex=.8)
-text(1.8,.08,paste('N = ',as.integer(aggdata[1,3])),cex=.8)
-text(3.1,.35,paste('N = ',as.integer(aggdata[1,4])),cex=.8)
+barplot(as.matrix(aggdata[1,5:7]),main='No cutoff',ylim=c(-.2,1.35),
+        ylab='z-score',col='grey')
+text(.65,.09,as.integer(aggdata[1,2]),cex=.85)
+text(1.8,(aggdata[1,6]+.11),as.integer(aggdata[1,3]),cex=.85)
+text(3.1,(aggdata[1,7]+.11),as.integer(aggdata[1,4]),cex=.85)
+#NB text positions for N labels done by trial and error
+# for +ve values, add around .11 to value
 
-barplot(as.matrix(aggdata[3,5:7]),main='Cutoff = 0',ylim=c(-.2,1.25))
-text(.6,.8,paste('N = ',as.integer(aggdata[3,2])),cex=.8)
-text(1.8,.85,paste('N = ',as.integer(aggdata[3,3])),cex=.8)
-text(3.1,.95,paste('N = ',as.integer(aggdata[3,4])),cex=.8)
+barplot(as.matrix(aggdata[3,5:7]),main='Top 50%',ylim=c(-.2,1.35),col='grey')
+text(.65,(aggdata[3,5]+.11),as.integer(aggdata[3,2]),cex=.85)
+text(1.8,(aggdata[3,6]+.11),as.integer(aggdata[3,3]),cex=.85)
+text(3.1,(aggdata[3,7]+.11),as.integer(aggdata[3,4]),cex=.85)
 
-barplot(as.matrix(aggdata[4,5:7]),main='Cutoff = .5',ylim=c(-.2,1.25))
-text(.6,1.15,paste('N = ',as.integer(aggdata[4,2])),cex=.8)
-text(1.8,1.18,paste('N = ',as.integer(aggdata[4,3])),cex=.8)
-text(3.1,1.235,paste('N = ',as.integer(aggdata[4,4])),cex=.8)
-
+barplot(as.matrix(aggdata[4,5:7]),main='Top 33%',ylim=c(-.2,1.35),col='grey')
+text(.65,(aggdata[4,5]+.11),as.integer(aggdata[4,2]),cex=.85)
+text(1.8,(aggdata[4,6]+.11),as.integer(aggdata[4,3]),cex=.85)
+text(3.1,(aggdata[4,7]+.11),as.integer(aggdata[4,4]),cex=.85)
 
