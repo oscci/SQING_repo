@@ -250,10 +250,15 @@ temp=rep(0,30) #create vector to denote quasi effect sizes
 myindex<-c(which(allstudy$Quasi_ES==0),which(allstudy$Quasi_ES=='n/a'))
 mysubset<-allstudy[myindex,]
 temp[myindex]<-1
+
 plot(allstudy$SelRes_N,allstudy$SelRes_ES,log='x',
      xlab="Sample size ", ylab="Effect size (r)",
      pch=1+(15*temp)) #pch is symbol type: open or filled circle for 1 or 16
+myline<-allstudy[,c(44,17)] #select N and effect size for 80% power
+myline<-myline[order(as.numeric(myline$SelRes_N)),] #need to rank order before plotting line
+lines(myline,lty=3,col='red') #plot dotted line showing effect size with 80% power
 
+#compute correlation
 fullcorrel<-cor(log(as.numeric(allstudy$SelRes_N)),as.numeric(allstudy$SelRes_ES))
 xy<-cbind(log(as.numeric(allstudy$SelRes_N)),as.numeric(allstudy$SelRes_ES))
 fullci<-cor.ci(xy,niter=1000,plot=FALSE,p=.025)
