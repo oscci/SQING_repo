@@ -252,6 +252,13 @@ myindex<-c(which(allstudy$Quasi_ES==0),which(allstudy$Quasi_ES=='n/a'))
 mysubset<-allstudy[myindex,]
 temp[myindex]<-1
 
+#-------------------------------------------------------------------
+#for blank plot! Used if creating plots for slides, with red line first
+#plot(allstudy$SelRes_N,allstudy$SelRes_ES,log='x',
+#     xlab="Sample size ", ylab="Effect size (r)",
+#     pch=3,type='n') #pch is symbol type: open or filled circle for 1 or 16
+#-------------------------------------------------------------------
+
 plot(allstudy$SelRes_N,allstudy$SelRes_ES,log='x',
      xlab="Sample size ", ylab="Effect size (r)",
      pch=1+(15*temp)) #pch is symbol type: open or filled circle for 1 or 16
@@ -348,3 +355,19 @@ setwd("~/Dropbox/Projects2016/SQING/SQING R scripts")
 shortbit<-allstudy[,c(1,8,10)]
 newdata <- shortbit[order(shortbit$Genes),]
 write.table(newdata, "genedata.txt", sep="\t") 
+
+#looking at N in relation to replication (not currently used)
+require(yarrr)
+x<-as.numeric(allstudy$Repcode)
+y<-log(as.numeric((allstudy$SelRes_N)))
+piratedata<-as.data.frame(cbind(x,y))
+require(yarrr)
+x<-as.numeric(allstudy$Repcode)
+y<-log(as.numeric((allstudy$SelRes_N)))
+piratedata<-as.data.frame(cbind(x,y))
+pirateplot(formula=y~x,data=piratedata,xaxt='n',yaxt='n',xlab='Replication',ylab='N',theme=2,point.o=.8)
+#xaxt and yaxt set to 'n' to suppress tick marks and labels so we can add our own
+axis(1, at=1:4, labels=levels(allstudy$Repcode))
+z=c(20,60,150,400,1000,3000) #need to create labels for log scale
+axis(2, at=log(z), labels=z,las=1)
+
