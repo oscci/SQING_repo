@@ -365,7 +365,7 @@ require(yarrr)
 x<-as.numeric(allstudy$Repcode)
 y<-log(as.numeric((allstudy$SelRes_N)))
 piratedata<-as.data.frame(cbind(x,y))
-pirateplot(formula=y~x,data=piratedata,xaxt='n',yaxt='n',xlab='Replication',ylab='N',theme=2,point.o=.8)
+pirateplot(formula=y~x,data=piratedata,xaxt='n',yaxt='n',xlab='Replication',ylab='Sample size',theme=2,point.o=.8)
 #xaxt and yaxt set to 'n' to suppress tick marks and labels so we can add our own
 axis(1, at=1:4, labels=levels(allstudy$Repcode))
 z=c(20,60,150,400,1000,3000) #need to create labels for log scale
