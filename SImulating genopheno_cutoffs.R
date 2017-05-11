@@ -125,20 +125,20 @@ png(paste(myfolder,myfilename,sep=''),
 par(mfrow=c(1,3)) #set up plot frame with 3 plots in 1 row
 
 barplot(as.matrix(aggdata[1,5:7]),main='No cutoff',ylim=c(-.2,1.35),
-        ylab='z-score',col='grey')
+        ylab='z-score',col='yellow')
 text(.65,.09,as.integer(aggdata[1,2]),cex=.85)
 text(1.8,(aggdata[1,6]+.11),as.integer(aggdata[1,3]),cex=.85)
 text(3.1,(aggdata[1,7]+.11),as.integer(aggdata[1,4]),cex=.85)
 #NB text positions for N labels done by trial and error
 # for +ve values, add around .11 to value
 
-barplot(as.matrix(aggdata[3,5:7]),main='Top 50%',ylim=c(-.2,1.35),col='grey')
+barplot(as.matrix(aggdata[3,5:7]),main='Top 50%',ylim=c(-.2,1.35),col='orange')
 text(.65,(aggdata[3,5]+.11),as.integer(aggdata[3,2]),cex=.85)
 text(1.8,(aggdata[3,6]+.11),as.integer(aggdata[3,3]),cex=.85)
 text(3.1,(aggdata[3,7]+.11),as.integer(aggdata[3,4]),cex=.85)
 
-barplot(as.matrix(aggdata[4,5:7]),main='Top 33%',ylim=c(-.2,1.35),col='grey')
+barplot(as.matrix(aggdata[4,5:7]),main='Top 33%',ylim=c(-.2,1.35),col='red')
 text(.65,(aggdata[4,5]+.11),as.integer(aggdata[4,2]),cex=.85)
 text(1.8,(aggdata[4,6]+.11),as.integer(aggdata[4,3]),cex=.85)
 text(3.1,(aggdata[4,7]+.11),as.integer(aggdata[4,4]),cex=.85)
-
+dev.off() #turn off external plotting
