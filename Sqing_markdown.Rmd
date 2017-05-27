@@ -15,6 +15,7 @@ output:
  
 # 30th April 2017: moved the markdown file to SQING_repo
 # 10th May 2017: cleared old versions and modified fig 2
+# 27th May 2017: tidied up script
   #-------------------------------------------------------------------------------
   # Specify packages
   #-------------------------------------------------------------------------------
@@ -40,14 +41,14 @@ output:
   # https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html -re miktex/mactex
   #-------------------------------------------------------------------------------
   
- xlsdir<-"~/Dropbox/Projects2016/SQING/excel sheets/"
+ xlsdir<-"~/Dropbox/Projects2016/SQING/excel sheets/xls_for_osf/"
   myfilename<-paste(xlsdir,"SQING_with_templates.xlsx",sep='') 
   
   SQING.dat=loadWorkbook(myfilename)
  #-------------------------------------------------------------------------------
  
-# The organisation of information in the xls file is not optimal so we are going to 
-# create a new data frame with column headings that make sense and then copy over
+# The organisation of information in the xls file is not optimal so we will make
+#  a new data frame with column headings that make sense and then copy over
 # the information we need
   
   #create a data.frame with 70 columns by 30 rows
@@ -112,11 +113,12 @@ colnames(allstudy)[6:7]<-c('DiscoveryN','ReplicationN')
 
 temp5=data.frame(readWorksheet(SQING.dat,sheet='authorcontact',startCol=4,endCol=4,startRow=2,endRow=31,header=F))
  allstudy[,48]<-temp5[,1]
+ print('Ns who replied (2), acknowledged (1), no response (0)')
  table(allstudy$Au_response) #2 indicates replied; 1 indicates acknowledged,0 no response
  # These numbers to be entered into manuscript
  # ----------------------------------------------------------------------------------------
 
-# Add journal names: these are in another data sheet
+# Add journal names from sheet 'studies_with_replicates'
 
 allstudy$Journal <-readWorksheet(SQING.dat,sheet='studies_with_replicates',startCol=3,endCol=3,header=T)
 
@@ -220,7 +222,7 @@ myNtable$N_Pheno[temploc] <- temp
 lastcol=length(colnames(myNtable))
 myNtable<-myNtable[,-lastcol] #remove Quasi_ES column
 # These codes allocated on basis of data in myNTable
-myNtable$Corrected<-c(1,1,0,0,1,0,1,0,1,1,0,0,0,1,2,2,2,2,0,0,2,1,0,0,2,0,0,1,2,2)
+myNtable$Corrected<-c(1,1,0,0,1,0,1,0,1,1,0,0,0,1,2,2,2,2,0,0,2,1,0,0,2,2,0,1,0,2)
 myNtable$Corrected<-as.factor(myNtable$Corrected)
 levels(myNtable$Corrected)<-c('No','Partial','Yes')
 
@@ -264,12 +266,13 @@ plot(allstudy$SelRes_N,allstudy$SelRes_ES,log='x',
      pch=1+(15*temp)) #pch is symbol type: open or filled circle for 1 or 16
 myline<-allstudy[,c(44,17)] #select N and effect size for 80% power
 myline<-myline[order(as.numeric(myline$SelRes_N)),] #need to rank order before plotting line
-lines(myline,lty=3,col='red') #plot dotted line showing effect size with 80% power
+lines(myline,lty=2,lwd=2,col='red') #plot dotted line showing effect size with 80% power
 
-#compute correlation
+#compute correlation of effect size with log sample size
 fullcorrel<-cor(log(as.numeric(allstudy$SelRes_N)),as.numeric(allstudy$SelRes_ES))
 xy<-cbind(log(as.numeric(allstudy$SelRes_N)),as.numeric(allstudy$SelRes_ES))
 fullci<-cor.ci(xy,niter=1000,plot=FALSE,p=.025)
+#redo correlation excluding those with quasi effect sizes
 subsetcorrel<-cor(log(as.numeric(mysubset$SelRes_N)),as.numeric(mysubset$SelRes_ES))
 xy1<-cbind(log(as.numeric(mysubset$SelRes_N)),as.numeric(mysubset$SelRes_ES))
 subsetci<-cor.ci(xy1,niter=1000,plot=FALSE,p=.025)
